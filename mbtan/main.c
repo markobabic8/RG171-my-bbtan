@@ -117,14 +117,6 @@ int main(int argc, char** argv){
     
     glutKeyboardFunc(on_keyboard);
     glutDisplayFunc(on_display);
-    
-    /*glVertex2f(x_curr-size/2, y_curr-size/2);
-        glVertex2f(x_curr+size/2,y_curr-size/2);
-        glVertex2f(x_curr+size/2,y_curr+size/2);
-        glVertex2f(x_curr-size/2,y_curr+size/2);
-        
-        y_curr - size/2 = -0.8, y_curr =-0.75
-        */
 
     srand(time(NULL));
 
