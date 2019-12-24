@@ -6,16 +6,17 @@
 #include "types.h"
 
 #define TIMER_ID 0
-#define TIMER_INTERVAL 20
+#define TIMER_INTERVAL 1
 
 Terrain terrain; 
 
 static int animation_ongoing = 0;
+static int direction = 0;
 
 static void on_display(void){
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.7,0.7,0.7,1);
+    glClearColor(0.2,0.2,0.2,1);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(0,22,21,
@@ -29,6 +30,14 @@ static void on_display(void){
     
     draw_cubes();
 
+    draw_semaphore();
+
+    draw_backround();
+
+
+    if(!animation_ongoing)
+       draw_direction_vector(terrain);
+
     glutSwapBuffers();
 }
 
@@ -36,12 +45,19 @@ static void on_timer(int value){
     if(value != TIMER_ID)
         return;
 
-    animation_ongoing = timer_ball(terrain);
-
-
+    animation_ongoing = timer_ball(terrain, animation_ongoing);
 
     if(animation_ongoing)
         glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+}
+
+static void on_timer2(int value){
+    if(value != TIMER_ID)
+        return;
+    
+    timer_direction_vector(direction);
+
+    glutPostRedisplay();
 }
 
 static void on_keyboard(unsigned char key, int x, int y){
@@ -62,11 +78,27 @@ static void on_keyboard(unsigned char key, int x, int y){
                 animation_ongoing = 1;
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
             }
+            break;
+        case 'd':
+        case 'D':
+            direction = 1;
+            if(animation_ongoing == 0)
+                glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
+            break;
+        case 'a':
+        case 'A':
+            direction = 2;
+            if(animation_ongoing == 0)
+                glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
+            break;
     }
 }
 
 static void on_reshape(int width, int height){
+    //Podesavamo viewport.
     glViewport(0,0,width,height);
+    
+    //Podesavamo projekciju.
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60, (float)width/height, 1, 1000);
