@@ -71,7 +71,7 @@ static void on_keyboard(unsigned char key, int x, int y){
             exit(0);
             break;
         case ' ':
-            if(!animation_ongoing && animation_parametar >= 100 && animation_parametar2==0){
+            if(!animation_ongoing && animation_parametar >= 100 && !animation_ongoing2){
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
                 animation_ongoing = 1;
             }
@@ -88,13 +88,13 @@ static void on_keyboard(unsigned char key, int x, int y){
         case 'd':
         case 'D':
             direction = 1;
-            if(animation_ongoing == 0 && animation_parametar >= 100 && animation_parametar2==0)
+            if(animation_ongoing == 0 && animation_parametar >= 100 && !animation_ongoing2)
                 glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
             break;
         case 'a':
         case 'A':
             direction = 2;
-            if(animation_ongoing == 0 && animation_parametar >= 100 && animation_parametar2==0)
+            if(animation_ongoing == 0 && animation_parametar >= 100 && !animation_ongoing2)
                 glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
             break;
         case 'g':
