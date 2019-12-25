@@ -11,11 +11,12 @@
 #define BROJ_KOCKICA_VERTIKALNO 5
 //Makro za odredjivanje veceg od dva elementa.
 #define max(A, B) (((A) > (B)) ? (A) : (B))
+#define MAX_LEN 50
 
 static GLuint texture_names[3];
-#define FILENAME0 "bbtan.bmp"
+#define FILENAME0 "backround3.bmp"
 #define FILENAME1 "zid2.bmp"
-#define FILENAME2 "zid2.bmp"
+#define FILENAME2 "game_over.bmp"
 
 //Koordinate loptice.
 static float x_curr;
@@ -30,6 +31,7 @@ static float v_x;
 static float v_z;
 
 static int score;
+static int max_score=0;
 
 static float x_start;
 static float z_start;
@@ -104,9 +106,9 @@ void init_texture(void)
 
     glBindTexture(GL_TEXTURE_2D, texture_names[2]);
     glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    GL_TEXTURE_WRAP_S, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_T, GL_REPEAT);
+                    GL_TEXTURE_WRAP_T, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,
                     GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,
@@ -114,6 +116,9 @@ void init_texture(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+    /* Iskljucujemo teksturu */
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     image_done(image);
 
 }
@@ -157,7 +162,6 @@ void initialize(Terrain *terrain){
     srand(time(NULL));
 
     init_texture();
-
     score = 0;
 
     //Inicijalizacija promenljivih koje nam pomazu u iscrtavanju terena.
@@ -458,7 +462,7 @@ static void renderBitmapString(int x, int y,int z,void* font, char *string)
 {
     int len; //duzina stringa
     glDisable(GL_LIGHTING); //Privremeno iskljucujemo osvetljenje da bi postavili boju teksta
-    glColor3f(1,0,0); //Postavljanje boje teksta
+    glColor3f(1,1,1); //Postavljanje boje teksta
     glRasterPos3f(x,y,z);
     len = strlen(string);
     for (int i = 0; i < len; i++) 
@@ -469,13 +473,36 @@ static void renderBitmapString(int x, int y,int z,void* font, char *string)
 }
 
 void draw_score(){
-    char word[50];
+    char word[MAX_LEN];
 
-    sprintf(word, "%d", score);
-    const int x = 0;
+    if(max_score < score)
+        max_score = score;
+
+    sprintf(word, "Best: %d \nNow: %d", max_score, score);
+    const int x = -2;
     const int y = 13;
     const int z = 0;
     renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
+}
+
+void write_instructions(float* animation_parametar, float *animation_parametar2){
+    char word[MAX_LEN];
+
+    if(!*animation_parametar){
+        sprintf(word, "Start on 'G'.");
+        const int x = -3;
+        const int y = 10;
+        const int z = 0;
+    renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
+    }
+
+    if(*animation_parametar2 >= 100){
+        sprintf(word, "Press 'R' for new game.");
+        const int x = -5;
+        const int y = 10;
+        const int z = 0;
+        renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
+    }
 }
 
 int timer_ball(Terrain terrain, int animation_ongoing){
@@ -502,10 +529,10 @@ int timer_ball(Terrain terrain, int animation_ongoing){
 
     for(int i=0; i<BROJ_KOCKICA_VERTIKALNO; i++){
         for(int j=0; j<BROJ_KOCKICA_HORIZONTALNO; j++){
-            if(((x_curr+0.2 >=  x_kockica[i][j] - 4.3/2.0 || x_curr-0.2 >=  x_kockica[i][j] - 4.3/2.0) 
-                && (x_curr+0.2 <= x_kockica[i][j] + 4.3/2.0 || x_curr-0.2 <=  x_kockica[i][j] + 4.3/2.0 )) 
-                && ((z_curr+0.2 >= z_kockica[i] - 4.3/2.0 || z_curr-0.2 >= z_kockica[i] - 4.3/2.0) 
-                && (z_curr-0.2 <= z_kockica[i] + 4.3/2.0 || z_curr-0.2 <= z_kockica[i] + 4.3/2.0))
+            if(((x_curr+0.15 >=  x_kockica[i][j] - 4.3/2.0 || x_curr-0.15 >=  x_kockica[i][j] - 4.3/2.0) 
+                && (x_curr+0.15 <= x_kockica[i][j] + 4.3/2.0 || x_curr-0.15 <=  x_kockica[i][j] + 4.3/2.0 )) 
+                && ((z_curr+0.15 >= z_kockica[i] - 4.3/2.0 || z_curr-0.15 >= z_kockica[i] - 4.3/2.0) 
+                && (z_curr-0.15 <= z_kockica[i] + 4.3/2.0 || z_curr-0.15 <= z_kockica[i] + 4.3/2.0))
                 && x_kockica[i][j] != 0){
 
                 //Nacin na koji odredjujemo da li je loptica udarila u donju/gornju stranicu kocke.
@@ -518,10 +545,10 @@ int timer_ball(Terrain terrain, int animation_ongoing){
                 //je prica i za gornju ivicu kocke.
 
                 //Udarac u donju stranu.
-                if(z_curr-0.2 <= z_kockica[i] + 4.3/2 && z_curr+0.2 >= z_kockica[i] + 4.3/2)
+                if(z_curr-0.15 <= z_kockica[i] + 4.3/2 && z_curr+0.15 >= z_kockica[i] + 4.3/2)
                     indikator_z = 1;
                 //Udarac u gornju stranu.
-                else if(z_curr-0.2 <= z_kockica[i] - 4.3/2 && z_curr+0.2 >= z_kockica[i] - 4.3/2)
+                else if(z_curr-0.15 <= z_kockica[i] - 4.3/2 && z_curr+0.15 >= z_kockica[i] - 4.3/2)
                     indikator_z = 1;
                 
                 indikator = 1;
@@ -551,7 +578,7 @@ int timer_ball(Terrain terrain, int animation_ongoing){
     return 1;
 }
 
-void timer_direction_vector(int direction){
+void timer_direction_vector(Terrain terrain, int direction){
     if(direction == 1){
         v_x -= 0.02;
     }
@@ -592,8 +619,18 @@ void draw_cubes(){
 //Zelim da napravim vektor kojim ce korisnik odredjivati pocetni smer kretanja loptice.
 void draw_direction_vector(Terrain terrain){
     glPushMatrix();
+        GLdouble cliping_plane0[] = {1,0,0,17};
+        GLdouble cliping_plane1[] = {-1,0,0,17};
+        
+        glEnable(GL_CLIP_PLANE0);
+        glClipPlane(GL_CLIP_PLANE0, cliping_plane0);
+
+        glEnable(GL_CLIP_PLANE1);
+        glClipPlane(GL_CLIP_PLANE1, cliping_plane1);
+
         glColor3f(1,0,0);
         glLineWidth(20);
+
         glBegin(GL_LINES);
             glVertex3f(x_curr, 0, z_curr);
             glNormal3f(0,1,0);
@@ -601,6 +638,8 @@ void draw_direction_vector(Terrain terrain){
             glNormal3f(0,1,0);
         glEnd();
 
+        glDisable(GL_CLIP_PLANE0);
+        glDisable(GL_CLIP_PLANE1);
     glPopMatrix();
 }
 
@@ -608,34 +647,52 @@ void draw_semaphore(){
     draw_score();
     
     glPushMatrix();
-        glColor3f(1,1,1);
-        glTranslatef(0,12,-3);
-        glScalef(2,1,0);
+        glColor3f(0,0,0);
+        glRotatef(-45,1,0,0);
+        glTranslatef(0,14,-3);
+        glScalef(4,2,0);
         glutSolidCube(2);
     glPopMatrix();
 }
 
-void draw_backround(){
+int draw_backround(){
+    int indikator = 0;
+
+    for(int i = 0; i < BROJ_KOCKICA_HORIZONTALNO; i++){
+            if(x_kockica[BROJ_KOCKICA_VERTIKALNO-1][i] != 0){
+                indikator = 1;
+                break;
+            }
+    }
+
     float ivica = 1.0;
     const float coef = 10.0;
     glPushMatrix();
-        glTranslatef(0,-20,-20);
+        glDisable(GL_LIGHTING);
+        glTranslatef(-7,-20,-20);
         glRotatef(45,-1,0,0);
         glScalef(140,70,0);
         glColor3f(1,1,1);
-        glBindTexture(GL_TEXTURE_2D, texture_names[0]);
+
+        if(!indikator)
+            glBindTexture(GL_TEXTURE_2D, texture_names[0]);
+        else
+            glBindTexture(GL_TEXTURE_2D, texture_names[2]);
         glBegin(GL_QUADS);
                     glNormal3f(1,1,2);
                     glTexCoord2f(0,0);
                     glVertex3f(-ivica/2, -ivica/2, ivica/2);
-                    glTexCoord2f(0, 2);
+                    glTexCoord2f(0, ivica);
                     glVertex3f(-ivica/2, ivica/2, ivica/2);
-                    glTexCoord2f(2*coef , 2);
+                    glTexCoord2f(ivica , ivica);
                     glVertex3f(ivica/2, ivica/2, ivica/2);
-                    glTexCoord2f(2*coef, 0);
+                    glTexCoord2f(ivica, 0);
                     glVertex3f(ivica/2, -ivica/2, ivica/2);
         glEnd();
         glBindTexture(GL_TEXTURE_2D,0);
         glutSolidCube(ivica);
+        glEnable(GL_LIGHTING);
     glPopMatrix();
+
+    return indikator;
 }

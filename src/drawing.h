@@ -11,6 +11,7 @@ void draw_direction_vector();
 void timer_direction_vector();
 void draw_score();
 void draw_semaphore();
-void draw_backround();
+int draw_backround();
+void write_instructions();
 
 #endif
