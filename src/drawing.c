@@ -4,6 +4,7 @@
 #include "types.h"
 #include <math.h>
 #include <time.h>
+#include "drawing.h"
 #include "image.h"
 #include <string.h>
 
@@ -35,24 +36,9 @@ static int max_score=0;
 
 static float x_start;
 static float z_start;
-static float y_kockica;
 static float x_kockica[BROJ_KOCKICA_VERTIKALNO][BROJ_KOCKICA_HORIZONTALNO];
 static float z_kockica[BROJ_KOCKICA_VERTIKALNO];
 
-float function_plane(float u, float v){
-    return -0;
-}
-
-void set_vertex_and_normal(float u, float v, float (*function)(float, float)){
-    float diff_u, diff_v;
-
-    diff_u = (function(u+1, v) - function(u-1, v)) / 2.0;
-    diff_v = (function(u, v+1) - function(u, v-1)) / 2.0;
-
-    glNormal3f(-diff_u, 1, -diff_v);
-
-    glVertex3f(u, function(u, v), v);
-}
 
 void init_texture(void)
 {
@@ -82,10 +68,9 @@ void init_texture(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-    /* Iskljucujemo teksturu */
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    /*Ucitavamo drugu strukturu*/
     image_read(image, FILENAME1);
 
     glBindTexture(GL_TEXTURE_2D, texture_names[1]);
@@ -100,7 +85,6 @@ void init_texture(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-    /* Oslobadjamo objekat iz memorije */
     
     image_read(image, FILENAME2);
 
@@ -116,45 +100,11 @@ void init_texture(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-    /* Iskljucujemo teksturu */
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
     image_done(image);
 
-}
-
-//Iscrtavanje ravni terana.
-void draw_plane(Terrain terrain){
-    int u, v;
-
-    glPushMatrix();
-    {
-        GLfloat ambient_coeffs[] = { 0.0, 0.0, 0.0, 1 };
-        GLfloat diffuse_coeffs[] = { 0, 0, 0.0, 1 };
-        GLfloat specular_coeffs[] = { 0, 0, 0, 1 };
-    
-        GLfloat shininess = 30;
-
-        //Podesavaju se parametri materijala. 
-        glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
-        glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-    
-        glShadeModel(GL_SMOOTH);
-
-        glColor3f(0,0,0);
-        //Crtamo funkciju strip po strip.
-        for(u = terrain.U_FROM; u < terrain.U_TO; u++){
-            glBegin(GL_TRIANGLE_STRIP);
-            for(v = terrain.V_FROM; v <= terrain.V_TO; v++){
-                set_vertex_and_normal(u, v,function_plane);
-                set_vertex_and_normal(u+1, v,function_plane);
-            }
-            glEnd();
-        }
-    }
-    glPopMatrix();
 }
 
 //Inicijalizacija.
@@ -198,13 +148,21 @@ void initialize(Terrain *terrain){
     direction_z = z_curr-18*v_z;
 
     //Inicijalizacija prve vrste kockica.
+
+    //Osigurac sluzi da obezbedi da ne dodje do situacije u kojoj se ne iscrtava nijedna kockica.
+    int osigurac = 0;
     double pom;
     for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO; i++){
         pom = x_start + i*4.3 + i*0.3;
         if(rand()%2){
             x_kockica[0][i] = pom;
+            osigurac = 1;
         }
     }
+
+    if(!osigurac)
+        x_kockica[0][0] = x_start;
+
 
     //Inicijalizacija z koordinate kockica.
     for(int i=0;i<BROJ_KOCKICA_VERTIKALNO;i++){
@@ -238,6 +196,56 @@ void initialize(Terrain *terrain){
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
     
+}
+
+
+float function_plane(float u, float v){
+    return 0;
+}
+
+void set_vertex_and_normal(float u, float v, float (*function)(float, float)){
+    float diff_u, diff_v;
+
+    diff_u = (function(u+1, v) - function(u-1, v)) / 2.0;
+    diff_v = (function(u, v+1) - function(u, v-1)) / 2.0;
+
+    glNormal3f(-diff_u, 1, -diff_v);
+
+    glVertex3f(u, function(u, v), v);
+}
+
+//Iscrtavanje ravni terana.
+void draw_plane(Terrain terrain){
+    int u, v;
+
+    glPushMatrix();
+    {
+        GLfloat ambient_coeffs[] = { 0.0, 0.0, 0.0, 1 };
+        GLfloat diffuse_coeffs[] = { 0, 0, 0.0, 1 };
+        GLfloat specular_coeffs[] = { 0, 0, 0, 1 };
+    
+        GLfloat shininess = 30;
+
+        //Podesavaju se parametri materijala. 
+        glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
+        glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+    
+        glShadeModel(GL_SMOOTH);
+
+        glColor3f(0,0,0);
+        //Crtamo funkciju strip po strip.
+        for(u = terrain.U_FROM; u < terrain.U_TO; u++){
+            glBegin(GL_TRIANGLE_STRIP);
+            for(v = terrain.V_FROM; v <= terrain.V_TO; v++){
+                set_vertex_and_normal(u, v,function_plane);
+                set_vertex_and_normal(u+1, v,function_plane);
+            }
+            glEnd();
+        }
+    }
+    glPopMatrix();
 }
 
 //Iscrtavanje omotaca terena.
@@ -437,25 +445,98 @@ void draw_ball(){
     glPopMatrix();
 }
 
-void timer_lowering(){
-    for(int i=BROJ_KOCKICA_VERTIKALNO-1; i>0;i--){
-        for(int j=BROJ_KOCKICA_HORIZONTALNO-1; j>=0;j--){
-            x_kockica[i][j] = x_kockica[i-1][j];
+void draw_cubes(){
+    glColor3f(1,0,0);
+    for(int i=0;i<BROJ_KOCKICA_VERTIKALNO;i++){
+        for(int j=0;j<BROJ_KOCKICA_HORIZONTALNO;j++){
+            if(x_kockica[i][j] != 0){
+                glPushMatrix();
+                    glTranslatef(x_kockica[i][j],0,z_kockica[i]);
+                    glutSolidCube(4.3);
+                glPopMatrix();
+            }
         }
     }
+}
 
-    for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO;i++)
-        x_kockica[0][i] = 0;
+//Zelim da napravim vektor kojim ce korisnik odredjivati pocetni smer kretanja loptice.
+void draw_direction_vector(){
+    glPushMatrix();
+        GLdouble cliping_plane0[] = {1,0,0,17};
+        GLdouble cliping_plane1[] = {-1,0,0,17};
+        
+        glEnable(GL_CLIP_PLANE0);
+        glClipPlane(GL_CLIP_PLANE0, cliping_plane0);
 
-    srand(time(NULL));
+        glEnable(GL_CLIP_PLANE1);
+        glClipPlane(GL_CLIP_PLANE1, cliping_plane1);
 
-    double pom;
-    for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO; i++){
-        pom = x_start + i*4.3 + i*0.3;
-        if(rand()%2){
-            x_kockica[0][i] = pom;
-        }
+        glColor3f(1,0,0);
+        glLineWidth(20);
+
+        glBegin(GL_LINES);
+            glVertex3f(x_curr, 0, z_curr);
+            glNormal3f(0,1,0);
+            glVertex3f(direction_x, 0, direction_z);
+            glNormal3f(0,1,0);
+        glEnd();
+
+        glDisable(GL_CLIP_PLANE0);
+        glDisable(GL_CLIP_PLANE1);
+    glPopMatrix();
+}
+
+void draw_semaphore(){
+    draw_score();
+    
+    glPushMatrix();
+        glColor3f(0,0,0);
+        glRotatef(-45,1,0,0);
+        glTranslatef(0,14.5,-3);
+        glScalef(5,2,0);
+        glutSolidCube(2);
+    glPopMatrix();
+}
+
+int draw_backround(){
+    int indikator = 0;
+
+    for(int i = 0; i < BROJ_KOCKICA_HORIZONTALNO; i++){
+            if(x_kockica[BROJ_KOCKICA_VERTIKALNO-1][i] != 0){
+                indikator = 1;
+                break;
+            }
     }
+
+    float ivica = 1.0;
+    glPushMatrix();
+        glDisable(GL_LIGHTING);
+        glTranslatef(-7,-20,-20);
+        glRotatef(45,-1,0,0);
+        glScalef(140,70,0);
+        glColor3f(1,1,1);
+
+        if(!indikator)
+            glBindTexture(GL_TEXTURE_2D, texture_names[0]);
+        else
+            glBindTexture(GL_TEXTURE_2D, texture_names[2]);
+        glBegin(GL_QUADS);
+                    glNormal3f(1,1,2);
+                    glTexCoord2f(0,0);
+                    glVertex3f(-ivica/2, -ivica/2, ivica/2);
+                    glTexCoord2f(0, ivica);
+                    glVertex3f(-ivica/2, ivica/2, ivica/2);
+                    glTexCoord2f(ivica , ivica);
+                    glVertex3f(ivica/2, ivica/2, ivica/2);
+                    glTexCoord2f(ivica, 0);
+                    glVertex3f(ivica/2, -ivica/2, ivica/2);
+        glEnd();
+        glBindTexture(GL_TEXTURE_2D,0);
+        glutSolidCube(ivica);
+        glEnable(GL_LIGHTING);
+    glPopMatrix();
+
+    return indikator;
 }
 
 static void renderBitmapString(int x, int y,int z,void* font, char *string)
@@ -502,6 +583,27 @@ void write_instructions(float* animation_parametar, float *animation_parametar2)
         const int y = 10;
         const int z = 0;
         renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
+    }
+}
+
+void timer_lowering(){
+    for(int i=BROJ_KOCKICA_VERTIKALNO-1; i>0;i--){
+        for(int j=BROJ_KOCKICA_HORIZONTALNO-1; j>=0;j--){
+            x_kockica[i][j] = x_kockica[i-1][j];
+        }
+    }
+
+    for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO;i++)
+        x_kockica[0][i] = 0;
+
+    srand(time(NULL));
+
+    double pom;
+    for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO; i++){
+        pom = x_start + i*4.3 + i*0.3;
+        if(rand()%2){
+            x_kockica[0][i] = pom;
+        }
     }
 }
 
@@ -578,7 +680,7 @@ int timer_ball(Terrain terrain, int animation_ongoing){
     return 1;
 }
 
-void timer_direction_vector(Terrain terrain, int direction){
+void timer_direction_vector(int direction){
     if(direction == 1){
         v_x -= 0.02;
     }
@@ -593,106 +695,11 @@ void timer_direction_vector(Terrain terrain, int direction){
 
     
 
-    if(v_x >= 0.22)
-        v_x = 0.22;
-    else if(v_x <= -0.22)
-        v_x = -0.22;
+    if(v_x >= 0.225)
+        v_x = 0.225;
+    else if(v_x <= -0.225)
+        v_x = -0.225;
     
     direction_x = x_curr-18*v_x;
     direction_z = z_curr-18*v_z;
-}
-
-void draw_cubes(){
-    glColor3f(1,0,0);
-    for(int i=0;i<BROJ_KOCKICA_VERTIKALNO;i++){
-        for(int j=0;j<BROJ_KOCKICA_HORIZONTALNO;j++){
-            if(x_kockica[i][j] != 0){
-                glPushMatrix();
-                    glTranslatef(x_kockica[i][j],0,z_kockica[i]);
-                    glutSolidCube(4.3);
-                glPopMatrix();
-            }
-        }
-    }
-}
-
-//Zelim da napravim vektor kojim ce korisnik odredjivati pocetni smer kretanja loptice.
-void draw_direction_vector(Terrain terrain){
-    glPushMatrix();
-        GLdouble cliping_plane0[] = {1,0,0,17};
-        GLdouble cliping_plane1[] = {-1,0,0,17};
-        
-        glEnable(GL_CLIP_PLANE0);
-        glClipPlane(GL_CLIP_PLANE0, cliping_plane0);
-
-        glEnable(GL_CLIP_PLANE1);
-        glClipPlane(GL_CLIP_PLANE1, cliping_plane1);
-
-        glColor3f(1,0,0);
-        glLineWidth(20);
-
-        glBegin(GL_LINES);
-            glVertex3f(x_curr, 0, z_curr);
-            glNormal3f(0,1,0);
-            glVertex3f(direction_x, 0, direction_z);
-            glNormal3f(0,1,0);
-        glEnd();
-
-        glDisable(GL_CLIP_PLANE0);
-        glDisable(GL_CLIP_PLANE1);
-    glPopMatrix();
-}
-
-void draw_semaphore(){
-    draw_score();
-    
-    glPushMatrix();
-        glColor3f(0,0,0);
-        glRotatef(-45,1,0,0);
-        glTranslatef(0,14,-3);
-        glScalef(4,2,0);
-        glutSolidCube(2);
-    glPopMatrix();
-}
-
-int draw_backround(){
-    int indikator = 0;
-
-    for(int i = 0; i < BROJ_KOCKICA_HORIZONTALNO; i++){
-            if(x_kockica[BROJ_KOCKICA_VERTIKALNO-1][i] != 0){
-                indikator = 1;
-                break;
-            }
-    }
-
-    float ivica = 1.0;
-    const float coef = 10.0;
-    glPushMatrix();
-        glDisable(GL_LIGHTING);
-        glTranslatef(-7,-20,-20);
-        glRotatef(45,-1,0,0);
-        glScalef(140,70,0);
-        glColor3f(1,1,1);
-
-        if(!indikator)
-            glBindTexture(GL_TEXTURE_2D, texture_names[0]);
-        else
-            glBindTexture(GL_TEXTURE_2D, texture_names[2]);
-        glBegin(GL_QUADS);
-                    glNormal3f(1,1,2);
-                    glTexCoord2f(0,0);
-                    glVertex3f(-ivica/2, -ivica/2, ivica/2);
-                    glTexCoord2f(0, ivica);
-                    glVertex3f(-ivica/2, ivica/2, ivica/2);
-                    glTexCoord2f(ivica , ivica);
-                    glVertex3f(ivica/2, ivica/2, ivica/2);
-                    glTexCoord2f(ivica, 0);
-                    glVertex3f(ivica/2, -ivica/2, ivica/2);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D,0);
-        glutSolidCube(ivica);
-        glEnable(GL_LIGHTING);
-    glPopMatrix();
-
-    return indikator;
 }

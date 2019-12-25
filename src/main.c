@@ -16,21 +16,28 @@ static float animation_parametar = 0;
 static float animation_parametar2 = 0;
 static float animation_ongoing2 = 0;
 
-static void on_timer4(int value){
+//Kretanje loptice.
+static void on_timer(int value){
     if(value != TIMER_ID)
         return;
 
-    animation_parametar2 += 0.5;
+    animation_ongoing = timer_ball(terrain, animation_ongoing);
 
-    if(animation_ongoing2)
-        glutTimerFunc(TIMER_INTERVAL, on_timer4, TIMER_ID);
+    if(animation_ongoing)
+        glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+}
 
-    if(animation_parametar2 >= 100)
-        animation_ongoing2 = 0;
+//Kretanje linije kojom korisnik na pocetku odredjuje u kom ce pravcu ici loptica.
+static void on_timer2(int value){
+    if(value != TIMER_ID)
+        return;
+    
+    timer_direction_vector(direction);
 
     glutPostRedisplay();
 }
 
+//Spustanje terena pre pocetka igre.
 static void on_timer3(int value){
     if(value != TIMER_ID)
         return;
@@ -46,21 +53,18 @@ static void on_timer3(int value){
     glutPostRedisplay();
 }
 
-static void on_timer(int value){
+//Povlacenje terena nakon sto je igra zavrsena.
+static void on_timer4(int value){
     if(value != TIMER_ID)
         return;
 
-    animation_ongoing = timer_ball(terrain, animation_ongoing);
+    animation_parametar2 += 0.5;
 
-    if(animation_ongoing)
-        glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
-}
+    if(animation_ongoing2)
+        glutTimerFunc(TIMER_INTERVAL, on_timer4, TIMER_ID);
 
-static void on_timer2(int value){
-    if(value != TIMER_ID)
-        return;
-    
-    timer_direction_vector(terrain,direction);
+    if(animation_parametar2 >= 100)
+        animation_ongoing2 = 0;
 
     glutPostRedisplay();
 }
@@ -70,12 +74,14 @@ static void on_keyboard(unsigned char key, int x, int y){
         case 27:
             exit(0);
             break;
+        //Ispaljivanje loptice.
         case ' ':
             if(!animation_ongoing && animation_parametar >= 100 && !animation_ongoing2){
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
                 animation_ongoing = 1;
             }
             break;
+        //Reset.
         case 'r':
         case 'R':
             animation_ongoing2 = 0;
@@ -85,18 +91,21 @@ static void on_keyboard(unsigned char key, int x, int y){
             initialize(&terrain);
             glutPostRedisplay();
             break;
+        //Pomeramo vektor pravca u desno.
         case 'd':
         case 'D':
             direction = 1;
             if(animation_ongoing == 0 && animation_parametar >= 100 && !animation_ongoing2)
                 glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
             break;
+        //Pomeramo vektor pravca u levo.
         case 'a':
         case 'A':
             direction = 2;
             if(animation_ongoing == 0 && animation_parametar >= 100 && !animation_ongoing2)
                 glutTimerFunc(TIMER_INTERVAL, on_timer2, TIMER_ID);
             break;
+        //Aktiviramo spustanje terena.
         case 'g':
         case 'G':
             if(animation_ongoing2 == 0){
@@ -132,8 +141,11 @@ static void on_display(void){
     
     write_instructions(&animation_parametar, &animation_parametar2);
 
+    //Ukoliko je kocka dosla do granicne linije igra se prekida i povratna vrednost funkcije
+    //draw_backround je 1.
     int ind = draw_backround();
 
+    //Slucaj kada nije ispunjen uslov za kraj igre.
     if(!ind){
         float terrain_parametar = animation_parametar/100 < 1 ? animation_parametar/100 : 1;
         glPushMatrix();
@@ -143,13 +155,16 @@ static void on_display(void){
             draw_cubes();
             draw_semaphore();
             if(!animation_ongoing)
-                draw_direction_vector(terrain);
+                draw_direction_vector();
         glPopMatrix();
     }
+    //Slucaj kada je ispunjen uslov za kraj igre.
     else{
         float terrain_parametar = animation_parametar2/100 < 1 ? animation_parametar2/100 : 1;
-        glutTimerFunc(TIMER_INTERVAL,on_timer4,TIMER_ID);
-
+        if(!animation_ongoing2){
+            glutTimerFunc(TIMER_INTERVAL,on_timer4,TIMER_ID);
+            animation_ongoing2 = 1;
+        }
         glPushMatrix();
             glTranslatef(0,0,0-70*terrain_parametar);
             draw_terrain(terrain);
@@ -157,7 +172,7 @@ static void on_display(void){
             draw_cubes();
             draw_semaphore();
             if(!animation_ongoing)
-                draw_direction_vector(terrain);
+                draw_direction_vector();
         glPopMatrix();
     }
         
@@ -182,10 +197,8 @@ int main(int argc, char** argv){
 
     glEnable(GL_COLOR_MATERIAL);
 
-    //glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
     glEnable(GL_DEPTH_TEST);
 
-    //Bez ovoga nece da se iscrta scena.
     glEnable(GL_NORMALIZE);
     glutMainLoop();
 
