@@ -19,6 +19,9 @@ static GLuint texture_names[3];
 #define FILENAME1 "zid2.bmp"
 #define FILENAME2 "game_over.bmp"
 
+static float x_prev;
+static float z_prev;
+
 //Koordinate loptice.
 static float x_curr;
 static float z_curr;
@@ -42,7 +45,7 @@ static float z_kockica[BROJ_KOCKICA_VERTIKALNO];
 
 void init_texture(void)
 {
-    Image * image;
+    Image* image;
     
     glEnable(GL_TEXTURE_2D);
 
@@ -128,6 +131,8 @@ void initialize(Terrain *terrain){
     
     //Inicijalizacija koordinata loptice.
     //Random x-pozicija na terenu.
+    x_prev = 0;
+    z_prev = 0;
     x_curr = terrain->U_FROM + 1.2 + rand()%(terrain->U_TO - 1 + abs(terrain->U_FROM + 1));
     if(x_curr >= terrain->U_TO - 1.2)
         x_curr = terrain->U_TO - 1.2;
@@ -532,7 +537,7 @@ int draw_backround(){
                     glVertex3f(ivica/2, -ivica/2, ivica/2);
         glEnd();
         glBindTexture(GL_TEXTURE_2D,0);
-        glutSolidCube(ivica);
+        //glutSolidCube(ivica);
         glEnable(GL_LIGHTING);
     glPopMatrix();
 
@@ -608,6 +613,9 @@ void timer_lowering(){
 }
 
 int timer_ball(Terrain terrain, int animation_ongoing){
+    x_prev = x_curr;
+    z_prev = z_curr;
+
     z_curr += -v_z;
     if(z_curr >= terrain.V_TO - 2.5 || z_curr <= terrain.V_FROM + 1)
         v_z *= -1;
@@ -647,10 +655,10 @@ int timer_ball(Terrain terrain, int animation_ongoing){
                 //je prica i za gornju ivicu kocke.
 
                 //Udarac u donju stranu.
-                if(z_curr-0.15 <= z_kockica[i] + 4.3/2 && z_curr+0.15 >= z_kockica[i] + 4.3/2)
+                if((z_curr-0.15 <= z_kockica[i] + 4.3/2 && z_curr+0.15 >= z_kockica[i] + 4.3/2) && !(z_prev-0.15 <= z_kockica[i] + 4.3/2 && z_prev+0.15 >= z_kockica[i] -4.3/2 ))
                     indikator_z = 1;
                 //Udarac u gornju stranu.
-                else if(z_curr-0.15 <= z_kockica[i] - 4.3/2 && z_curr+0.15 >= z_kockica[i] - 4.3/2)
+                else if(z_curr-0.15 <= z_kockica[i] - 4.3/2 && z_curr+0.15 >= z_kockica[i] - 4.3/2 && !(z_prev-0.15 <= z_kockica[i] +4.3/2 && z_prev+0.15 >= z_kockica[i] -4.3/2 ))
                     indikator_z = 1;
                 
                 indikator = 1;
