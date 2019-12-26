@@ -8,17 +8,24 @@
 #include "image.h"
 #include <string.h>
 
+//Broj kocki po vertikali i horizontali terena.
 #define BROJ_KOCKICA_HORIZONTALNO 7
 #define BROJ_KOCKICA_VERTIKALNO 5
+
 //Makro za odredjivanje veceg od dva elementa.
 #define max(A, B) (((A) > (B)) ? (A) : (B))
+
+//Najveca moguca duzia niske.
 #define MAX_LEN 50
 
+//Niz i makroi za rad sa teksturama.
 static GLuint texture_names[3];
 #define FILENAME0 "backround3.bmp"
 #define FILENAME1 "zid2.bmp"
 #define FILENAME2 "game_over.bmp"
 
+//Koordinate u kojima je loptica bila u trenutku pre nego sto je
+//njena pozicija promenjena prilikom pomeranja po terenu.
 static float x_prev;
 static float z_prev;
 
@@ -34,15 +41,21 @@ static float direction_z;
 static float v_x;
 static float v_z;
 
+//Skor i najbolji skor.
 static int score;
 static int max_score=0;
 
+//Potencijalna pozicija centra prve kocke.
 static float x_start;
 static float z_start;
+
+//X koordinate svih kocki na terenu.
 static float x_kockica[BROJ_KOCKICA_VERTIKALNO][BROJ_KOCKICA_HORIZONTALNO];
+
+//Sve moguce z koordinate kocki na terenu.
 static float z_kockica[BROJ_KOCKICA_VERTIKALNO];
 
-
+//Inicijalizacija tekstura.
 void init_texture(void)
 {
     Image* image;
@@ -110,11 +123,15 @@ void init_texture(void)
 
 }
 
-//Inicijalizacija.
+//Glavna inicijalizacija.
 void initialize(Terrain *terrain){
     srand(time(NULL));
 
     init_texture();
+
+    //Skor na pocetku postavljamo na 0. Maks skor ne mozemo ovde postaviti na 0
+    //jer ne zelimo da se maks skor resetuje pritiskom na dugme 'R' ili 'r'
+    //vec zelimo da on bude sacuvan sve do izlaska iz igre.
     score = 0;
 
     //Inicijalizacija promenljivih koje nam pomazu u iscrtavanju terena.
@@ -123,37 +140,44 @@ void initialize(Terrain *terrain){
     terrain->U_TO = 17;
     terrain->V_TO = 15;
 
+    //Inicijalizacija x i z koordinata kocki na terenu.
     for(int i=0; i<BROJ_KOCKICA_VERTIKALNO; i++)
         for(int j = 0; j<BROJ_KOCKICA_HORIZONTALNO; j++){
             x_kockica[i][j] = 0;
             z_kockica[i] = 0;
         }
     
-    //Inicijalizacija koordinata loptice.
-    //Random x-pozicija na terenu.
+    //Inicijalizacija koordinata loptice. Pocetna x koordinata loptice je slucajni broj.
     x_prev = 0;
     z_prev = 0;
     x_curr = terrain->U_FROM + 1.2 + rand()%(terrain->U_TO - 1 + abs(terrain->U_FROM + 1));
     if(x_curr >= terrain->U_TO - 1.2)
         x_curr = terrain->U_TO - 1.2;
     z_curr = 12.5;
+
+    //Inicijalizacija pomeraja loptice.
     v_x = 0;
     v_z = 0.005;
 
+    //Intenzitet vektora pomeraja.
     float intezitet = sqrt(v_x*v_x + v_z*v_z);
 
+    //Na ovaj nacin smo sigurni da ce vektor pomeraja na pocetku biti jedinicni, sto je veoma bitno.
     v_x = v_x / (intezitet*4);
     v_z = v_z / (intezitet*4);
 
+    //Potencijalna pocetna pozicija x koordinate kockice. 
     x_start = terrain->U_FROM + 3;
+
+    //Z koordinata najvise kocke.
     z_start = terrain->V_FROM + 7;
 
+    //Pomocu ovoga iscrtavamo liniju koja odredjuje vektor pravca.
     //Konstanta uz v_x i v_z je tu samo da bi linija koja predstavlja vektor pravca bila optimalne duzine.
     direction_x = x_curr-18*v_x;
     direction_z = z_curr-18*v_z;
 
     //Inicijalizacija prve vrste kockica.
-
     //Osigurac sluzi da obezbedi da ne dodje do situacije u kojoj se ne iscrtava nijedna kockica.
     int osigurac = 0;
     double pom;
@@ -165,6 +189,8 @@ void initialize(Terrain *terrain){
         }
     }
 
+    //Situacija kada je svaki slucajno generisan broj bio paran pa zbog toga nismo
+    //iscrtali nijednu kocku, iscrtavamo bar jednu kako bi igra bila zanimljiva.
     if(!osigurac)
         x_kockica[0][0] = x_start;
 
@@ -203,11 +229,12 @@ void initialize(Terrain *terrain){
     
 }
 
-
+//Funkcija koja nam pomaze u iscrtavanju ravni terena.
 float function_plane(float u, float v){
     return 0;
 }
 
+//Parametrizacija ravni terena.
 void set_vertex_and_normal(float u, float v, float (*function)(float, float)){
     float diff_u, diff_v;
 
@@ -253,7 +280,7 @@ void draw_plane(Terrain terrain){
     glPopMatrix();
 }
 
-//Iscrtavanje omotaca terena.
+//Iscrtavanje zidova oko terena zajedno sa teksturama.
 void draw_terrain_broders(Terrain terrain){
     double ivica = 1;
 
@@ -266,6 +293,7 @@ void draw_terrain_broders(Terrain terrain){
         
         //Iscrtavanje gornjeg zida.
         glPushMatrix();
+            //Menjamo ostvetljenje zbog lepseg izgleda terena.
             GLfloat light_position[] = {0, 30, 30, 0 };
             glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
@@ -281,7 +309,7 @@ void draw_terrain_broders(Terrain terrain){
             glTranslatef((terrain.U_FROM+terrain.U_TO)/2,0,terrain.V_FROM);
 
             //U_TO - U_FROM je sirina odnosno deo x-ose koji zaklapa ivica.
-            //3 je visina odnosno deo y-ose koji zaklapa ivica.
+            //4 je visina odnosno deo y-ose koji zaklapa ivica.
             //1 je debljina odnosno deo z-ose koji zaklapa ivica.
             //dodajemo + 1 da bismo imali lepe coskove.
             glScalef(terrain.U_TO-terrain.U_FROM+1, 4, 1);
@@ -372,6 +400,7 @@ void draw_terrain_broders(Terrain terrain){
         glPopMatrix();
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        //Vracamo osvetljenje na staro.
         GLfloat light_position1[] = {0, 40, 0, 1 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
 
@@ -386,7 +415,7 @@ void draw_terrain_broders(Terrain terrain){
     glPopMatrix();
 }
 
-//Granicna linija.
+//Granicna linija. Od nje krece loptica i ako kocke dodju do nje igra je zavrsena.
 void draw_border_line(Terrain terrain){
     
     glPushMatrix();
@@ -406,7 +435,7 @@ void draw_border_line(Terrain terrain){
     
 }
 
-//Iscrtavanje terena.
+//Iscrtavanje kompletnog terena.
 void draw_terrain(Terrain terrain){
     draw_terrain_broders(terrain);
     draw_border_line(terrain);
@@ -414,7 +443,7 @@ void draw_terrain(Terrain terrain){
 }
 
 //Iscrtavanje koordinatnog sistema.
-//Moze biti korisno za orijentaciju u prostoru.
+//Moze biti korisno za orijentaciju u prostoru prilikom pravljenja projekta.
 void draw_coord_sys(){
     
     glPushMatrix();
@@ -442,6 +471,7 @@ void draw_coord_sys(){
     glPopMatrix();
 }
 
+//Iscrtavanje loptice.
 void draw_ball(){
     glColor3f(1,1,1);
     glPushMatrix();
@@ -450,6 +480,7 @@ void draw_ball(){
     glPopMatrix();
 }
 
+//Iscrtavanje kocki.
 void draw_cubes(){
     glColor3f(1,0,0);
     for(int i=0;i<BROJ_KOCKICA_VERTIKALNO;i++){
@@ -464,9 +495,12 @@ void draw_cubes(){
     }
 }
 
-//Zelim da napravim vektor kojim ce korisnik odredjivati pocetni smer kretanja loptice.
+//Iscrtavanje vektora kojim ce korisnik odredjivati pocetni smer kretanja loptice.
 void draw_direction_vector(){
     glPushMatrix();
+        //Ovde nam je potrebna kliping ravan. Korisna je u situaciji kad se loptica nalazi uz sam levi ili desni zid i
+        //tada kada pomerimo liniju kojom je odredjen vektor pravca u stranu ka zidu da nema kliping ravni ona bi
+        //izlazila van terena sto ne izgleda kako treba.
         GLdouble cliping_plane0[] = {1,0,0,17};
         GLdouble cliping_plane1[] = {-1,0,0,17};
         
@@ -486,11 +520,13 @@ void draw_direction_vector(){
             glNormal3f(0,1,0);
         glEnd();
 
+        //Iskljucujemo kliping ravan.
         glDisable(GL_CLIP_PLANE0);
         glDisable(GL_CLIP_PLANE1);
     glPopMatrix();
 }
 
+//Iscrtavanje semafora na kom se nalazi trenutni i najbolji skor od pokretanja igre.
 void draw_semaphore(){
     draw_score();
     
@@ -503,6 +539,7 @@ void draw_semaphore(){
     glPopMatrix();
 }
 
+//Crtanje pozadine.
 int draw_backround(){
     int indikator = 0;
 
@@ -644,15 +681,6 @@ int timer_ball(Terrain terrain, int animation_ongoing){
                 && ((z_curr+0.15 >= z_kockica[i] - 4.3/2.0 || z_curr-0.15 >= z_kockica[i] - 4.3/2.0) 
                 && (z_curr-0.15 <= z_kockica[i] + 4.3/2.0 || z_curr-0.15 <= z_kockica[i] + 4.3/2.0))
                 && x_kockica[i][j] != 0){
-
-                //Nacin na koji odredjujemo da li je loptica udarila u donju/gornju stranicu kocke.
-                //U prvi if ulazimo ako su oba ova uslova ispunjena, znaci ako je loptica pokusala da udje na povrsinu kocke.
-                //Loptica moze uci na povrsinu kocke ili sa jedne od bocnih strana ili sa gornje/donje strane.
-                //Ukoliko je loptica pokusala da udje sa gornje ili donje strane treba da promenimo z pravac, a inace treba da promenimo
-                //x pravc.
-                //Ukoliko loptica pokusa da udje na povrsinu kocke sa donje strane ona ce sigurno u nekom trenutku morati da bude jednaka sa
-                //z koordinatom donje ivice kocke koja je jednaka z_kockice[i] + 4.3/2. Dakle mi to mozemo staviti u ovaj if ispod, analogna tome
-                //je prica i za gornju ivicu kocke.
 
                 //Udarac u donju stranu.
                 if((z_curr-0.15 <= z_kockica[i] + 4.3/2 && z_curr+0.15 >= z_kockica[i] + 4.3/2) && !(z_prev-0.15 <= z_kockica[i] + 4.3/2 && z_prev+0.15 >= z_kockica[i] -4.3/2 ))
