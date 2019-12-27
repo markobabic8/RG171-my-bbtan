@@ -499,7 +499,7 @@ void draw_cubes(){
 void draw_direction_vector(){
     glPushMatrix();
         //Ovde nam je potrebna kliping ravan. Korisna je u situaciji kad se loptica nalazi uz sam levi ili desni zid i
-        //tada kada pomerimo liniju kojom je odredjen vektor pravca u stranu ka zidu da nema kliping ravni ona bi
+        //tada, kada pomerimo liniju kojom je odredjen vektor pravca u stranu ka zidu, da nema kliping ravni ona bi
         //izlazila van terena sto ne izgleda kako treba.
         GLdouble cliping_plane0[] = {1,0,0,17};
         GLdouble cliping_plane1[] = {-1,0,0,17};
@@ -543,6 +543,7 @@ void draw_semaphore(){
 int draw_backround(){
     int indikator = 0;
 
+    //Proveravamo da li je ispunjen uslov za kraj igre, odnosno da li je neka od kocki dosla do granicne linije.
     for(int i = 0; i < BROJ_KOCKICA_HORIZONTALNO; i++){
             if(x_kockica[BROJ_KOCKICA_VERTIKALNO-1][i] != 0){
                 indikator = 1;
@@ -558,6 +559,8 @@ int draw_backround(){
         glScalef(140,70,0);
         glColor3f(1,1,1);
 
+        //Ako je nijedna od kocki nije dosla do granicne linije pozadina je slika prirode, 
+        //inace pozadina postaje crna i na njoj je ispisano 'GAME OVER'.
         if(!indikator)
             glBindTexture(GL_TEXTURE_2D, texture_names[0]);
         else
@@ -578,23 +581,33 @@ int draw_backround(){
         glEnable(GL_LIGHTING);
     glPopMatrix();
 
+    //Vracamo indikator za kraj igre koji se koristi u main.c.
     return indikator;
 }
 
-static void renderBitmapString(int x, int y,int z,void* font, char *string)
-{
-    int len; //duzina stringa
-    glDisable(GL_LIGHTING); //Privremeno iskljucujemo osvetljenje da bi postavili boju teksta
-    glColor3f(1,1,1); //Postavljanje boje teksta
+//Pomocna funkcija za ispisivanje teksta na ekranu.
+//Kod preuzet sa interneta.
+static void renderBitmapString(int x, int y,int z,void* font, char *string){
+    //Duzina stringa.
+    int len;
+
+    //Iskljucujemo osvetljenje jer se u suprotnom nece lepo postaviti boja teksta.
+    glDisable(GL_LIGHTING);
+    
+    glColor3f(1,1,1);
     glRasterPos3f(x,y,z);
     len = strlen(string);
     for (int i = 0; i < len; i++) 
     {
         glutBitmapCharacter(font, string[i]);
     }
-    glEnable(GL_LIGHTING); //Ponovo ukljucujemo osvetljenje
+
+    //Ponovo ukljucujemo osvetljenje.
+    glEnable(GL_LIGHTING);
 }
 
+//Ispisivanje trenutnog i najboljeg skora.
+//Ova funkcija se poziva u funkciji 'draw_semaphore' .
 void draw_score(){
     char word[MAX_LEN];
 
@@ -608,9 +621,11 @@ void draw_score(){
     renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
 }
 
+//Ispisivanje instrukcija neophodnih korisnicima.
 void write_instructions(float* animation_parametar, float *animation_parametar2){
     char word[MAX_LEN];
 
+    //Ovo se ispisuje pre pocetka igre.
     if(!*animation_parametar){
         sprintf(word, "Start on 'G'.");
         const int x = -3;
@@ -619,6 +634,7 @@ void write_instructions(float* animation_parametar, float *animation_parametar2)
     renderBitmapString(x,y,z,GLUT_BITMAP_TIMES_ROMAN_24,word);
     }
 
+    //Ovo se ispisuje po zavrsetku igre.
     if(*animation_parametar2 >= 100){
         sprintf(word, "Press 'R' for new game.");
         const int x = -5;
@@ -628,18 +644,25 @@ void write_instructions(float* animation_parametar, float *animation_parametar2)
     }
 }
 
+//U nastavku su funkcije koje predstavljaju podrsku za timer funkcije iz main.c i u njima glavna logika igrice.
+
+//Ovo je funkcija koja definise kako ce se kocke spustati tokom igre.
 void timer_lowering(){
+    //Kockice i-te vrste postaju kocke vrste i+1.
     for(int i=BROJ_KOCKICA_VERTIKALNO-1; i>0;i--){
         for(int j=BROJ_KOCKICA_HORIZONTALNO-1; j>=0;j--){
             x_kockica[i][j] = x_kockica[i-1][j];
         }
     }
 
+    //Azuriramo prvu vrstu matrice tako da svi njeni elementi budu 0,
+    //odnosno da nema kocki u njoj.
     for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO;i++)
         x_kockica[0][i] = 0;
 
     srand(time(NULL));
 
+    //Definisemo nove slucajno generisane kocke na mogucim pozicijama u prvoj vrsti.
     double pom;
     for(int i=0;i<BROJ_KOCKICA_HORIZONTALNO; i++){
         pom = x_start + i*4.3 + i*0.3;
@@ -649,10 +672,16 @@ void timer_lowering(){
     }
 }
 
+//Funkcija koja definise pomeranje loptice, njeno odbijanje o objekte(kocke i zidove terena) i njenu moc da unistava kocke.
 int timer_ball(Terrain terrain, int animation_ongoing){
+    //Pre svega moramo da cuvamo x i z koordinatu loptice pre njihove izmene.
     x_prev = x_curr;
     z_prev = z_curr;
 
+    //Menjamo koordinatu z i x i to tako sto dodajemo pomeraje za x i za z.
+    //Ukoliko se desi da loptica pokusa da prodje ogradjeni deo terena znak jednog od pomeraja se menja.
+    //I to znak z pomeraja ako loptica udari u granicnu liniju ili gornju granicu terena ili x pomeraja ako loptica pokusa
+    //da udari u levu ili desnu granicu pomeraja.
     z_curr += -v_z;
     if(z_curr >= terrain.V_TO - 2.5 || z_curr <= terrain.V_FROM + 1)
         v_z *= -1;
@@ -661,6 +690,9 @@ int timer_ball(Terrain terrain, int animation_ongoing){
     if(x_curr >=  terrain.U_TO - 1 || x_curr <= terrain.U_FROM + 1)
         v_x *= -1;
 
+    //Ukoliko je animacija stala odnosno nasa loptica se nalazi na granicnoj liniji
+    //na ovaj nacin cemo se osigurati da loptica nece biti preblizu bocne linije jer
+    //moze prouzrokovati odredjene bagove.
     if(animation_ongoing == 0){
     if(x_curr >= terrain.U_TO - 1.2)
         x_curr = terrain.U_TO - 1.2;
@@ -668,12 +700,27 @@ int timer_ball(Terrain terrain, int animation_ongoing){
         x_curr = terrain.U_FROM + 1.2;
     }
 
+    //Indikator da li je loptica udarila u kocku.
     int indikator = 0;
+    //Indikator da li je loptica udarila u kocku sa donje ili gornje strane.
     int indikator_z = 0;
 
+    //Ovime je odredjena linija koja predstavlja vektor pravca. Konstanta uz pomeraje je samo tu
+    //da bi odredila njenu duzinu.
     direction_x = x_curr-18*v_x;
     direction_z = z_curr-18*v_z;
 
+    //Kolizija.
+
+    //Pre svega ispitujemo da li je loptica udarila u kocku i ako jeste ulazimo u prvi if.
+    //Nakon toga bitno nam je na koji ce se nacin loptica odbiti o kocku odnosno da li ju je udarila
+    //sa bocne strane ili sa donje/gornje strane. Ukoliko ju je udarila sa bocne strane mora doci do promene
+    //x koordinate, a ukoliko ju je udarila sa donje/gornje strane mora doci do promene z koordinate.
+    //Zato imamo indikator_z koji nam odredjuje da li je loptica udarila sa gornje donje strane ili ne i to na sledeci nacin:
+    //u prvom ifu ispitujemo da li je doslo do udarca u donju stranu dakle da li je loptica udarila u donju granicu neke kocke,
+    //ali takodje veoma bitna, ali ne tako ocigledna stvar je i ispitati odakle je loptica dosla odnosno da li je ona
+    //udarila kocku sa boka u neku od koordinata donje granice(sto je moguce) ili ju je udarila odozdo i zato moramo da
+    //pamtimo prethodne x i y koordinatu loptice koje smo sacuvali na vrhu funkcije, analogna prica je i za udarac u gornju ivicu.
     for(int i=0; i<BROJ_KOCKICA_VERTIKALNO; i++){
         for(int j=0; j<BROJ_KOCKICA_HORIZONTALNO; j++){
             if(((x_curr+0.15 >=  x_kockica[i][j] - 4.3/2.0 || x_curr-0.15 >=  x_kockica[i][j] - 4.3/2.0) 
@@ -690,12 +737,15 @@ int timer_ball(Terrain terrain, int animation_ongoing){
                     indikator_z = 1;
                 
                 indikator = 1;
+                //Na ovaj nacin kocka nestaje sa terena jer se iscrtavaju samo kocje cija x koordinata nije 0.
                 x_kockica[i][j] = 0;
                 break;
             }
         }
     }
 
+    //U slucaju da je loptica udarila sa gornje/donje strane u kocku menja se z koordinata,
+    //inace menja se x koordinata.
     if(indikator){
         if(indikator_z)
             v_z*=-1;
@@ -705,8 +755,12 @@ int timer_ball(Terrain terrain, int animation_ongoing){
     indikator = 0;
     indikator_z = 0;
     
+    //Ponovo se iscrtava sve.
     glutPostRedisplay();
 
+    //Po povratku loptice na granicnu liniju poziva se timer_lowering koji spusta
+    //kocke za jedno polje ka dole i uvecava se skor, a samim tim i best skor ukoliko
+    //u nekoj od prethodnih partija nije postavljen na vece.
     if(z_curr >= terrain.V_TO - 2.5){
         ++score;
         timer_lowering();
@@ -716,26 +770,35 @@ int timer_ball(Terrain terrain, int animation_ongoing){
     return 1;
 }
 
+//Podrska za pomeranje linije koja predstavlja vektor pravca u levo i u desno.
 void timer_direction_vector(int direction){
+    //Smer ce biti jedan ukoliko pritiskamo 'a'/'A' za pomeraj u levo.
     if(direction == 1){
         v_x -= 0.02;
     }
+    //Smer ce biti jedan ukoliko pritiskamo 'd'/'D' za pomeraj u desno.
     else if(direction == 2){
         v_x += 0.02;
     }
 
+    //Vrlo je bitno da racunamo intenzitet.
     float intezitet = sqrt(v_x*v_x + v_z*v_z);
 
+    //I da delimo svaku koordinatu sa intenzitetom kako bismo imali jedinicni vektor.
+    //U suprotnom bi se jedna koordinata stalno vise povecavala i animacija pomeranja
+    //loptice bi bila promenljive brzine(nekad cak i ekstremno brza).
     v_x = v_x / (intezitet*4);
     v_z = v_z / (intezitet*4);
 
-    
-
+    //Uvodimo ogranicenje koliko nisko moze sa se usmeri vektor pravca
+    //koje za nijansu otezava igru i tako je cini zanimljivijom.
     if(v_x >= 0.225)
         v_x = 0.225;
     else if(v_x <= -0.225)
         v_x = -0.225;
     
+    //Kako smo azurirali pomeraj x i pomeraj z azuriramo i koordinate po kojima
+    //se iscrtava linija koja predstavlja vektor pravca po kom se ispaljuje loptica.
     direction_x = x_curr-18*v_x;
     direction_z = z_curr-18*v_z;
 }
