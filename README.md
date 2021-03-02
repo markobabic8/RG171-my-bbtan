@@ -8,7 +8,7 @@ nje. Kocke se svakim potezom spustaju ka granicnoj liniji sa koje se ispaljuje l
 neka od kocki dodje do granicne linije igra je gotova.
 
 ### Demo:
-[Video](https://youtu.be/zzROa-nYsZY)
+[Video](https://www.youtube.com/watch?v=zKqK1Hbjptc&t=5s)
 
 ### Komande:
 <kbd>G</kbd> / <kbd>g</kbd> Pocetak igre.<br>
