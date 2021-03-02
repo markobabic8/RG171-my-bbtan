@@ -7,6 +7,9 @@ ispalimo u bilo kom pravcu i cilj nam je da njom unistimo sto vise kocki koje se
 nje. Kocke se svakim potezom spustaju ka granicnoj liniji sa koje se ispaljuje loptica i ukoliko
 neka od kocki dodje do granicne linije igra je gotova.
 
+### Demo:
+[Video](https://youtu.be/zzROa-nYsZY)
+
 ### Komande:
 <kbd>G</kbd> / <kbd>g</kbd> Pocetak igre.<br>
 <kbd>space</kbd> Ispaljivanje loptice.<br>
